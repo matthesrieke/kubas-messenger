@@ -4,10 +4,12 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.StringWriter;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Properties;
 
+import javax.mail.Address;
 import javax.mail.Flags.Flag;
 import javax.mail.Folder;
 import javax.mail.Message;
@@ -16,6 +18,7 @@ import javax.mail.Session;
 import javax.mail.Store;
 import javax.mail.event.MessageCountEvent;
 import javax.mail.event.MessageCountListener;
+import javax.mail.internet.InternetAddress;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocket;
@@ -36,6 +39,8 @@ import org.apache.http.util.EntityUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.JsonGenerator;
 import com.sun.mail.imap.IMAPFolder;
 
 public class Email2GEE {
@@ -47,6 +52,11 @@ public class Email2GEE {
 	private String hostKey = "host";
 	private String inboxKey = "inbox";
 	private String geeEndpointURLKey = "geeendpointurl";
+
+	private final String email = "email";
+	private final String phone = "phone";
+	private final String userId = "userId";
+	private final String details = "details";
 
 	private String username;
 	private String password;
@@ -101,16 +111,19 @@ public class Email2GEE {
 				Message[] messages = e.getMessages();
 
 				for (Message message : messages) {
-					String subject = "empty subject";
+					org.n52.kubas.messenger.Message message2 = new org.n52.kubas.messenger.Message();
 					try {
-						subject = message.getSubject();
+						String subject = message.getSubject();
+						String fromEmailAddress = extractSenderEmailAdress(message.getFrom());
+						message2.setEmail(fromEmailAddress);
+						message2.setDetails(subject);
 						log.info("Got new message with subject: " + subject);
 					} catch (MessagingException e1) {
 						log.error("Could not get message subject.", e1);
 					}
 					//forward to GEE
 					try {
-						forwardToGEE(subject);
+						forwardToGEE(message2);
 					} catch (Exception e1) {
 						log.error("Could not forward message to GEE.", e1);
 					}
@@ -136,6 +149,24 @@ public class Email2GEE {
 				break;
 			}
 		}
+	}
+
+	private String extractSenderEmailAdress(Address[] addressArray){
+
+		String result = "";
+
+		if(addressArray == null){
+			return result;
+		}
+
+		for (Address address : addressArray) {
+			if(address instanceof InternetAddress){
+				result = ((InternetAddress)address).getAddress();
+				break;
+			}
+		}
+
+		return result;
 	}
 
 	protected HttpClient createClient() throws Exception {
@@ -200,11 +231,11 @@ public class Email2GEE {
 		}
 }
 
-	private void forwardToGEE(String subject) throws HttpException, IOException {
+	private void forwardToGEE(org.n52.kubas.messenger.Message message2) throws HttpException, IOException {
 
-		String request = "{\"subject\": \"" + subject + "\"}";
+		String requestJSON = createJSONFromMessage(message2);
 
-		StringEntity requestEntity = new StringEntity(request, "UTF-8");
+		StringEntity requestEntity = new StringEntity(requestJSON, "UTF-8");
 
 		requestEntity.setContentType("application/json");
 
@@ -216,11 +247,40 @@ public class Email2GEE {
 
 		EntityUtils.consume(response.getEntity());
 
-//		if (!((statusCode == HttpStatus.SC_OK) || (statusCode == HttpStatus.SC_CREATED))) {
-//			System.err.println("Method failed: "
-//					+ requestMethod.getStatusLine());
-//		}
+	}
 
+	private String createJSONFromMessage(org.n52.kubas.messenger.Message message) throws IOException{
+
+        StringWriter stringWriter = new StringWriter();
+
+        JsonFactory f = new JsonFactory();
+        JsonGenerator g = f.createGenerator(stringWriter);
+
+        g.writeStartObject();
+
+        String email = message.getEmail();
+
+        if(email != null && !email.isEmpty()){
+            g.writeStringField(this.email, message.getEmail());
+        }
+        String phone = message.getPhone();
+
+        if(phone != null && !phone.isEmpty()){
+            g.writeStringField(this.phone, message.getPhone());
+        }
+
+//        String userId = message.getUserId();
+//
+//        if(userId != null && !userId.isEmpty()){
+//            g.writeStringField(this.userId, message.getUserId());
+//        }
+
+        g.writeStringField(details, message.getDetails());
+
+        g.writeEndObject();
+        g.close();
+
+        return stringWriter.toString();
 	}
 
 	public void setUsername(String username) {

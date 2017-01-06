@@ -8,16 +8,6 @@ http://www.springframework.org/schema/mvc http://www.springframework.org/schema/
 
 	<mvc:annotation-driven />
 
-	<mvc:view-controller path="/" view-name="index" />
-
-	<!-- static resource files -->
-	<mvc:resources mapping="/static/**" location="/static/" />
-
     <bean id="messenger" class="org.n52.kubas.server.MessengerServlet" init-method="init" />
-
-    <context:component-scan base-package="org.n52.kubas">
-        <context:include-filter type="assignable" expression="org.n52.wps.webapp.api.ConfigurationModule" />
-        <context:exclude-filter type="regex" expression="org\.n52\.wps\.webapp\.testmodules\..*" />
-    </context:component-scan>
 
 </beans>

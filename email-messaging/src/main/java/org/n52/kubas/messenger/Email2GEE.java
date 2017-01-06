@@ -38,16 +38,16 @@ import org.slf4j.LoggerFactory;
 
 import com.sun.mail.imap.IMAPFolder;
 
-public class SMS2GEE {
+public class Email2GEE {
 
-	private static Logger log = LoggerFactory.getLogger(SMS2GEE.class);
-	
+	private static Logger log = LoggerFactory.getLogger(Email2GEE.class);
+
 	private String usernameKey = "username";
 	private String passwordKey = "password";
 	private String hostKey = "host";
 	private String inboxKey = "inbox";
 	private String geeEndpointURLKey = "geeendpointurl";
-	
+
 	private String username;
 	private String password;
 	private String host;
@@ -55,30 +55,30 @@ public class SMS2GEE {
 	private String geeEndpointURL;
 
 	private HttpClient client;
-	
-	public SMS2GEE(String secOptsPath) throws Exception {
-		
+
+	public Email2GEE(String secOptsPath) throws Exception {
+
 		InputStream propertiesInputstream = new FileInputStream(new File(secOptsPath));
-		
+
 		Properties mailAccountProperties = new Properties();
-		
+
 		mailAccountProperties.load(propertiesInputstream);
-		
+
 		if(!mailAccountProperties.containsKey(usernameKey) || !mailAccountProperties.containsKey(passwordKey)
 				|| !mailAccountProperties.containsKey(hostKey) || !mailAccountProperties.containsKey(inboxKey)
 				|| !mailAccountProperties.containsKey(geeEndpointURLKey)){
 			log.error("Properties not present.");
 			throw new RuntimeException("Properties not present.");
 		}
-		
+
 		setUsername(mailAccountProperties.getProperty(usernameKey));
 		setPassword(mailAccountProperties.getProperty(passwordKey));
 		setHost(mailAccountProperties.getProperty(hostKey));
 		setInbox(mailAccountProperties.getProperty(inboxKey));
 		setGeeEndpointURL(mailAccountProperties.getProperty(geeEndpointURLKey));
-		
+
 		client = createClient();
-		
+
 		Properties props = System.getProperties();
 		props.setProperty("mail.store.protocol", "imaps");
 		Session session = Session.getDefaultInstance(props, null);
@@ -86,7 +86,7 @@ public class SMS2GEE {
 		Store store = session.getStore("imaps");
 		store.connect(this.getHost(), this.getUsername(), this.getPassword());
 		IMAPFolder folder = (IMAPFolder) store.getFolder(this.getInbox());
-		
+
 		if (!folder.isOpen()) {
 			folder.open(Folder.READ_WRITE);
 		}
@@ -107,14 +107,14 @@ public class SMS2GEE {
 						log.info("Got new message with subject: " + subject);
 					} catch (MessagingException e1) {
 						log.error("Could not get message subject.", e1);
-					} 
+					}
 					//forward to GEE
 					try {
 						forwardToGEE(subject);
 					} catch (Exception e1) {
 						log.error("Could not forward message to GEE.", e1);
 					}
-					
+
 					try {
 						message.setFlag(Flag.SEEN, true);
 					} catch (MessagingException e1) {
@@ -156,7 +156,7 @@ public class SMS2GEE {
 
 		return result;
     }
-	
+
 	public class AllowTrustedHostNamesVerifier implements X509HostnameVerifier {
 		private StrictHostnameVerifier delegate;
 
@@ -199,28 +199,28 @@ public class SMS2GEE {
 			}
 		}
 }
-	
+
 	private void forwardToGEE(String subject) throws HttpException, IOException {
-		
+
 		String request = "{\"subject\": \"" + subject + "\"}";
 
 		StringEntity requestEntity = new StringEntity(request, "UTF-8");
-		
+
 		requestEntity.setContentType("application/json");
-		
+
 		HttpPost uriRequest = new HttpPost(getGeeEndpointURL());
-		
+
 		uriRequest.setEntity(requestEntity);
-		
+
 		HttpResponse response = client.execute(uriRequest);
-		
+
 		EntityUtils.consume(response.getEntity());
 
 //		if (!((statusCode == HttpStatus.SC_OK) || (statusCode == HttpStatus.SC_CREATED))) {
 //			System.err.println("Method failed: "
 //					+ requestMethod.getStatusLine());
 //		}
-		
+
 	}
 
 	public void setUsername(String username) {

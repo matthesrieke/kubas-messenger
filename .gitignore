@@ -17,3 +17,5 @@ server/.settings/
 webapp/.settings/
 server/target/
 webapp/target/
+.settings/
+email-messaging/target/

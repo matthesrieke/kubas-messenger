@@ -1,6 +1,6 @@
 package org.n52.kubas.messenger;
 
-public class Message {
+public class MessageFromEmail {
 
     private String email;
     private String phone;
@@ -8,9 +8,9 @@ public class Message {
     private boolean response;
     private String details;
 
-    public Message(){}
+    public MessageFromEmail(){}
 
-    public Message(String email, String phone, String userId, boolean response, String details){
+    public MessageFromEmail(String email, String phone, String userId, boolean response, String details){
         this.email = email;
         this.phone = phone;
         this.userId = userId;

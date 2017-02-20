@@ -1,9 +1,5 @@
 package org.n52.kubas.server;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 
 import javax.servlet.ServletConfig;
@@ -13,10 +9,15 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.n52.kubas.messenger.Email2GEE;
+import org.n52.kubas.messenger.GEE2Email;
+import org.n52.kubas.messenger.MessageToEmail;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.context.ServletConfigAware;
 import org.springframework.web.context.ServletContextAware;
 
@@ -33,14 +34,17 @@ public class MessengerServlet implements ServletContextAware, ServletConfigAware
     private ServletConfig servletConfig;
 
     private ServletContext setServletContext;
+    private String secOptsPath;
+    private GEE2Email mailSender;
 
     public void init() {
 
-        String secOptsPath = servletConfig.getInitParameter("secOptspath");
+        this.secOptsPath = servletConfig.getInitParameter("secOptspath");
 
         new Thread(){
             public void run() {
                 try {
+                    mailSender = new GEE2Email(secOptsPath);
                     new Email2GEE(secOptsPath);
                 } catch (Exception e) {
                     log.error("Could not start Email2GEE.", e);
@@ -55,21 +59,14 @@ public class MessengerServlet implements ServletContextAware, ServletConfigAware
     }
 
     @RequestMapping(method = RequestMethod.POST)
-    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-
-        File tmpfile = File.createTempFile("smsgatewaymockup", ".txt");
-
-        BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(tmpfile));
-
-        BufferedReader bufferedReader = new BufferedReader(req.getReader());
-
-        String content = "";
-
-        while((content = bufferedReader.readLine()) != null){
-            bufferedWriter.write(content + "\n");
+    @ResponseStatus(HttpStatus.OK)
+    protected void doPost(@RequestBody MessageToEmail mail) throws ServletException, IOException {
+        try {
+            mailSender.send(mail.getEmailTo(), mail.getSubject(), mail.getText());
+        } catch (Exception ex) {
+            log.warn("Could not send email: "+ ex.getMessage());
+            log.debug(ex.getMessage(), ex);
         }
-
-        bufferedWriter.close();
     }
 
     @Override

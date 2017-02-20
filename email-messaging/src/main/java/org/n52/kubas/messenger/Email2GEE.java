@@ -19,9 +19,6 @@ import javax.mail.Store;
 import javax.mail.event.MessageCountEvent;
 import javax.mail.event.MessageCountListener;
 import javax.mail.internet.InternetAddress;
-import javax.net.ssl.SSLException;
-import javax.net.ssl.SSLSession;
-import javax.net.ssl.SSLSocket;
 
 import org.apache.commons.httpclient.HttpException;
 import org.apache.http.HttpResponse;
@@ -30,9 +27,7 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.conn.scheme.Scheme;
 import org.apache.http.conn.scheme.SchemeRegistry;
 import org.apache.http.conn.ssl.SSLSocketFactory;
-import org.apache.http.conn.ssl.StrictHostnameVerifier;
 import org.apache.http.conn.ssl.TrustStrategy;
-import org.apache.http.conn.ssl.X509HostnameVerifier;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.util.EntityUtils;
@@ -45,11 +40,12 @@ import com.sun.mail.imap.IMAPFolder;
 
 public class Email2GEE {
 
-    private static Logger log = LoggerFactory.getLogger(Email2GEE.class);
+    private static final Logger log = LoggerFactory.getLogger(Email2GEE.class);
 
-    private String usernameKey = "username";
-    private String passwordKey = "password";
-    private String hostKey = "host";
+    public static final String usernameKey = "username";
+    public static final String passwordKey = "password";
+    public static final String hostKey = "host";
+    public static final String smtpHostKey = "smtpHost";
     private String inboxKey = "inbox";
     private String geeEndpointURLKey = "geeendpointurl";
 
@@ -111,7 +107,7 @@ public class Email2GEE {
                 Message[] messages = e.getMessages();
 
                 for (Message message : messages) {
-                    org.n52.kubas.messenger.Message message2 = new org.n52.kubas.messenger.Message();
+                    org.n52.kubas.messenger.MessageFromEmail message2 = new org.n52.kubas.messenger.MessageFromEmail();
                     try {
                         String subject = message.getSubject();
                         String fromEmailAddress = extractSenderEmailAdress(message.getFrom());
@@ -188,50 +184,7 @@ public class Email2GEE {
         return result;
     }
 
-    public class AllowTrustedHostNamesVerifier implements X509HostnameVerifier {
-        private StrictHostnameVerifier delegate;
-
-        public AllowTrustedHostNamesVerifier() {
-            this.delegate = new StrictHostnameVerifier();
-        }
-
-        public boolean verify(String hostname, SSLSession session) {
-            boolean result = this.delegate.verify(hostname, session);
-            if (!result) {
-                return true;
-            }
-
-            return result;
-        }
-
-        public void verify(String host, SSLSocket ssl) throws IOException {
-            try {
-                this.delegate.verify(host, ssl);
-            } catch (IOException e) {
-                log.info(e.getMessage());
-            }
-        }
-
-        public void verify(String host, X509Certificate cert)
-                throws SSLException {
-            try {
-                this.delegate.verify(host, cert);
-            } catch (SSLException e) {
-                log.info(e.getMessage());
-            }
-        }
-
-        public void verify(String host, String[] cns, String[] subjectAlts)
-                throws SSLException {
-            try {
-                this.delegate.verify(host, cns, subjectAlts);
-            } catch (SSLException e) {
-                log.info(e.getMessage());
-            }
-        }
-    }
-
-    private void forwardToGEE(org.n52.kubas.messenger.Message message2) throws HttpException, IOException {
+    private void forwardToGEE(org.n52.kubas.messenger.MessageFromEmail message2) throws HttpException, IOException {
 
         String requestJSON = createJSONFromMessage(message2);
 
@@ -249,7 +202,7 @@ public class Email2GEE {
 
     }
 
-    private String createJSONFromMessage(org.n52.kubas.messenger.Message message) throws IOException{
+    private String createJSONFromMessage(org.n52.kubas.messenger.MessageFromEmail message) throws IOException{
 
         StringWriter stringWriter = new StringWriter();
 

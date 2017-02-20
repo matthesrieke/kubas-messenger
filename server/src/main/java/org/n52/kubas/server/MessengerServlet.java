@@ -23,64 +23,64 @@ import org.springframework.web.context.ServletContextAware;
 @RequestMapping("/smsgateway")
 public class MessengerServlet implements ServletContextAware, ServletConfigAware{
 
-	/**
-	 *
-	 */
-	private static final long serialVersionUID = -901653202063235206L;
+    /**
+     *
+     */
+    private static final long serialVersionUID = -901653202063235206L;
 
-	private static Logger log = LoggerFactory.getLogger(MessengerServlet.class);
+    private static Logger log = LoggerFactory.getLogger(MessengerServlet.class);
 
-	private ServletConfig servletConfig;
+    private ServletConfig servletConfig;
 
-	private ServletContext setServletContext;
+    private ServletContext setServletContext;
 
-	public void init() {
+    public void init() {
 
-		String secOptsPath = servletConfig.getInitParameter("secOptspath");
+        String secOptsPath = servletConfig.getInitParameter("secOptspath");
 
-		new Thread(){
-			public void run() {
-				try {
-					new Email2GEE(secOptsPath);
-				} catch (Exception e) {
-					log.error("Could not start Email2GEE.", e);
-				}
-			};
-		}.start();
-	}
+        new Thread(){
+            public void run() {
+                try {
+                    new Email2GEE(secOptsPath);
+                } catch (Exception e) {
+                    log.error("Could not start Email2GEE.", e);
+                }
+            };
+        }.start();
+    }
 
-	@RequestMapping(method = RequestMethod.GET)
-	protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+    @RequestMapping(method = RequestMethod.GET)
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
 
-	}
+    }
 
-	@RequestMapping(method = RequestMethod.POST)
-	protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+    @RequestMapping(method = RequestMethod.POST)
+    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
 
-		File tmpfile = File.createTempFile("smsgatewaymockup", ".txt");
+        File tmpfile = File.createTempFile("smsgatewaymockup", ".txt");
 
-		BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(tmpfile));
+        BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(tmpfile));
 
-		BufferedReader bufferedReader = new BufferedReader(req.getReader());
+        BufferedReader bufferedReader = new BufferedReader(req.getReader());
 
-		String content = "";
+        String content = "";
 
-		while((content = bufferedReader.readLine()) != null){
-			bufferedWriter.write(content + "\n");
-		}
+        while((content = bufferedReader.readLine()) != null){
+            bufferedWriter.write(content + "\n");
+        }
 
-		bufferedWriter.close();
-	}
+        bufferedWriter.close();
+    }
 
-	@Override
-	public void setServletConfig(ServletConfig servletConfig) {
-		this.servletConfig = servletConfig;
+    @Override
+    public void setServletConfig(ServletConfig servletConfig) {
+        this.servletConfig = servletConfig;
 
-	}
+    }
 
-	@Override
-	public void setServletContext(ServletContext servletContext) {
-		this.setServletContext = servletContext;
-	}
+    @Override
+    public void setServletContext(ServletContext servletContext) {
+        this.setServletContext = servletContext;
+    }
 
 }

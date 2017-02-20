@@ -45,211 +45,211 @@ import com.sun.mail.imap.IMAPFolder;
 
 public class Email2GEE {
 
-	private static Logger log = LoggerFactory.getLogger(Email2GEE.class);
+    private static Logger log = LoggerFactory.getLogger(Email2GEE.class);
 
-	private String usernameKey = "username";
-	private String passwordKey = "password";
-	private String hostKey = "host";
-	private String inboxKey = "inbox";
-	private String geeEndpointURLKey = "geeendpointurl";
+    private String usernameKey = "username";
+    private String passwordKey = "password";
+    private String hostKey = "host";
+    private String inboxKey = "inbox";
+    private String geeEndpointURLKey = "geeendpointurl";
 
-	private final String email = "email";
-	private final String phone = "phone";
-	private final String userId = "userId";
-	private final String details = "details";
+    private final String email = "email";
+    private final String phone = "phone";
+    private final String userId = "userId";
+    private final String details = "details";
 
-	private String username;
-	private String password;
-	private String host;
-	private String inbox;
-	private String geeEndpointURL;
+    private String username;
+    private String password;
+    private String host;
+    private String inbox;
+    private String geeEndpointURL;
 
-	private HttpClient client;
+    private HttpClient client;
 
-	public Email2GEE(String secOptsPath) throws Exception {
+    public Email2GEE(String secOptsPath) throws Exception {
 
-		InputStream propertiesInputstream = new FileInputStream(new File(secOptsPath));
+        InputStream propertiesInputstream = new FileInputStream(new File(secOptsPath));
 
-		Properties mailAccountProperties = new Properties();
+        Properties mailAccountProperties = new Properties();
 
-		mailAccountProperties.load(propertiesInputstream);
+        mailAccountProperties.load(propertiesInputstream);
 
-		if(!mailAccountProperties.containsKey(usernameKey) || !mailAccountProperties.containsKey(passwordKey)
-				|| !mailAccountProperties.containsKey(hostKey) || !mailAccountProperties.containsKey(inboxKey)
-				|| !mailAccountProperties.containsKey(geeEndpointURLKey)){
-			log.error("Properties not present.");
-			throw new RuntimeException("Properties not present.");
-		}
+        if(!mailAccountProperties.containsKey(usernameKey) || !mailAccountProperties.containsKey(passwordKey)
+                || !mailAccountProperties.containsKey(hostKey) || !mailAccountProperties.containsKey(inboxKey)
+                || !mailAccountProperties.containsKey(geeEndpointURLKey)){
+            log.error("Properties not present.");
+            throw new RuntimeException("Properties not present.");
+        }
 
-		setUsername(mailAccountProperties.getProperty(usernameKey));
-		setPassword(mailAccountProperties.getProperty(passwordKey));
-		setHost(mailAccountProperties.getProperty(hostKey));
-		setInbox(mailAccountProperties.getProperty(inboxKey));
-		setGeeEndpointURL(mailAccountProperties.getProperty(geeEndpointURLKey));
+        setUsername(mailAccountProperties.getProperty(usernameKey));
+        setPassword(mailAccountProperties.getProperty(passwordKey));
+        setHost(mailAccountProperties.getProperty(hostKey));
+        setInbox(mailAccountProperties.getProperty(inboxKey));
+        setGeeEndpointURL(mailAccountProperties.getProperty(geeEndpointURLKey));
 
-		client = createClient();
+        client = createClient();
 
-		Properties props = System.getProperties();
-		props.setProperty("mail.store.protocol", "imaps");
-		Session session = Session.getDefaultInstance(props, null);
+        Properties props = System.getProperties();
+        props.setProperty("mail.store.protocol", "imaps");
+        Session session = Session.getDefaultInstance(props, null);
 
-		Store store = session.getStore("imaps");
-		store.connect(this.getHost(), this.getUsername(), this.getPassword());
-		IMAPFolder folder = (IMAPFolder) store.getFolder(this.getInbox());
+        Store store = session.getStore("imaps");
+        store.connect(this.getHost(), this.getUsername(), this.getPassword());
+        IMAPFolder folder = (IMAPFolder) store.getFolder(this.getInbox());
 
-		if (!folder.isOpen()) {
-			folder.open(Folder.READ_WRITE);
-		}
+        if (!folder.isOpen()) {
+            folder.open(Folder.READ_WRITE);
+        }
 
-		folder.addMessageCountListener(new MessageCountListener() {
+        folder.addMessageCountListener(new MessageCountListener() {
 
-			@Override
-			public void messagesRemoved(MessageCountEvent e) {}
+            @Override
+            public void messagesRemoved(MessageCountEvent e) {}
 
-			@Override
-			public void messagesAdded(MessageCountEvent e) {
-				Message[] messages = e.getMessages();
+            @Override
+            public void messagesAdded(MessageCountEvent e) {
+                Message[] messages = e.getMessages();
 
-				for (Message message : messages) {
-					org.n52.kubas.messenger.Message message2 = new org.n52.kubas.messenger.Message();
-					try {
-						String subject = message.getSubject();
-						String fromEmailAddress = extractSenderEmailAdress(message.getFrom());
-						message2.setEmail(fromEmailAddress);
-						message2.setDetails(subject);
-						log.info("Got new message with subject: " + subject);
-					} catch (MessagingException e1) {
-						log.error("Could not get message subject.", e1);
-					}
-					//forward to GEE
-					try {
-						forwardToGEE(message2);
-					} catch (Exception e1) {
-						log.error("Could not forward message to GEE.", e1);
-					}
+                for (Message message : messages) {
+                    org.n52.kubas.messenger.Message message2 = new org.n52.kubas.messenger.Message();
+                    try {
+                        String subject = message.getSubject();
+                        String fromEmailAddress = extractSenderEmailAdress(message.getFrom());
+                        message2.setEmail(fromEmailAddress);
+                        message2.setDetails(subject);
+                        log.info("Got new message with subject: " + subject);
+                    } catch (MessagingException e1) {
+                        log.error("Could not get message subject.", e1);
+                    }
+                    //forward to GEE
+                    try {
+                        forwardToGEE(message2);
+                    } catch (Exception e1) {
+                        log.error("Could not forward message to GEE.", e1);
+                    }
 
-					try {
-						message.setFlag(Flag.SEEN, true);
-					} catch (MessagingException e1) {
-						log.error("Could not set message to seen.", e1);
-					}
-				}
+                    try {
+                        message.setFlag(Flag.SEEN, true);
+                    } catch (MessagingException e1) {
+                        log.error("Could not set message to seen.", e1);
+                    }
+                }
 
-			}
-		});
+            }
+        });
 
-		while (true) {
-			try {
-				// folder.idle();
-				int newMessageCount = folder.getNewMessageCount();
-				log.info("New messages: " + newMessageCount);
-				Thread.sleep(30000);
-			} catch (Exception e) {
-				e.printStackTrace();
-				break;
-			}
-		}
-	}
-
-	private String extractSenderEmailAdress(Address[] addressArray){
-
-		String result = "";
-
-		if(addressArray == null){
-			return result;
-		}
-
-		for (Address address : addressArray) {
-			if(address instanceof InternetAddress){
-				result = ((InternetAddress)address).getAddress();
-				break;
-			}
-		}
-
-		return result;
-	}
-
-	protected HttpClient createClient() throws Exception {
-		DefaultHttpClient result = new DefaultHttpClient();
-		SchemeRegistry sr = result.getConnectionManager().getSchemeRegistry();
-
-		SSLSocketFactory sslsf = new SSLSocketFactory(new TrustStrategy() {
-
-			@Override
-			public boolean isTrusted(X509Certificate[] arg0, String arg1)
-					throws CertificateException {
-				return true;
-			}
-		}, new AllowTrustedHostNamesVerifier());
-
-		Scheme httpsScheme2 = new Scheme("https", 443, sslsf);
-		sr.register(httpsScheme2);
-
-		return result;
+        while (true) {
+            try {
+                // folder.idle();
+                int newMessageCount = folder.getNewMessageCount();
+                log.info("New messages: " + newMessageCount);
+                Thread.sleep(30000);
+            } catch (Exception e) {
+                e.printStackTrace();
+                break;
+            }
+        }
     }
 
-	public class AllowTrustedHostNamesVerifier implements X509HostnameVerifier {
-		private StrictHostnameVerifier delegate;
+    private String extractSenderEmailAdress(Address[] addressArray){
 
-		public AllowTrustedHostNamesVerifier() {
-			this.delegate = new StrictHostnameVerifier();
-		}
+        String result = "";
 
-		public boolean verify(String hostname, SSLSession session) {
-			boolean result = this.delegate.verify(hostname, session);
-			if (!result) {
-				return true;
-			}
+        if(addressArray == null){
+            return result;
+        }
 
-			return result;
-		}
+        for (Address address : addressArray) {
+            if(address instanceof InternetAddress){
+                result = ((InternetAddress)address).getAddress();
+                break;
+            }
+        }
 
-		public void verify(String host, SSLSocket ssl) throws IOException {
-			try {
-				this.delegate.verify(host, ssl);
-			} catch (IOException e) {
-				log.info(e.getMessage());
-			}
-		}
+        return result;
+    }
 
-		public void verify(String host, X509Certificate cert)
-				throws SSLException {
-			try {
-				this.delegate.verify(host, cert);
-			} catch (SSLException e) {
-				log.info(e.getMessage());
-			}
-		}
+    protected HttpClient createClient() throws Exception {
+        DefaultHttpClient result = new DefaultHttpClient();
+        SchemeRegistry sr = result.getConnectionManager().getSchemeRegistry();
 
-		public void verify(String host, String[] cns, String[] subjectAlts)
-				throws SSLException {
-			try {
-				this.delegate.verify(host, cns, subjectAlts);
-			} catch (SSLException e) {
-				log.info(e.getMessage());
-			}
-		}
-}
+        SSLSocketFactory sslsf = new SSLSocketFactory(new TrustStrategy() {
 
-	private void forwardToGEE(org.n52.kubas.messenger.Message message2) throws HttpException, IOException {
+            @Override
+            public boolean isTrusted(X509Certificate[] arg0, String arg1)
+                    throws CertificateException {
+                return true;
+            }
+        }, new AllowTrustedHostNamesVerifier());
 
-		String requestJSON = createJSONFromMessage(message2);
+        Scheme httpsScheme2 = new Scheme("https", 443, sslsf);
+        sr.register(httpsScheme2);
 
-		StringEntity requestEntity = new StringEntity(requestJSON, "UTF-8");
+        return result;
+    }
 
-		requestEntity.setContentType("application/json");
+    public class AllowTrustedHostNamesVerifier implements X509HostnameVerifier {
+        private StrictHostnameVerifier delegate;
 
-		HttpPost uriRequest = new HttpPost(getGeeEndpointURL());
+        public AllowTrustedHostNamesVerifier() {
+            this.delegate = new StrictHostnameVerifier();
+        }
 
-		uriRequest.setEntity(requestEntity);
+        public boolean verify(String hostname, SSLSession session) {
+            boolean result = this.delegate.verify(hostname, session);
+            if (!result) {
+                return true;
+            }
 
-		HttpResponse response = client.execute(uriRequest);
+            return result;
+        }
 
-		EntityUtils.consume(response.getEntity());
+        public void verify(String host, SSLSocket ssl) throws IOException {
+            try {
+                this.delegate.verify(host, ssl);
+            } catch (IOException e) {
+                log.info(e.getMessage());
+            }
+        }
 
-	}
+        public void verify(String host, X509Certificate cert)
+                throws SSLException {
+            try {
+                this.delegate.verify(host, cert);
+            } catch (SSLException e) {
+                log.info(e.getMessage());
+            }
+        }
 
-	private String createJSONFromMessage(org.n52.kubas.messenger.Message message) throws IOException{
+        public void verify(String host, String[] cns, String[] subjectAlts)
+                throws SSLException {
+            try {
+                this.delegate.verify(host, cns, subjectAlts);
+            } catch (SSLException e) {
+                log.info(e.getMessage());
+            }
+        }
+    }
+
+    private void forwardToGEE(org.n52.kubas.messenger.Message message2) throws HttpException, IOException {
+
+        String requestJSON = createJSONFromMessage(message2);
+
+        StringEntity requestEntity = new StringEntity(requestJSON, "UTF-8");
+
+        requestEntity.setContentType("application/json");
+
+        HttpPost uriRequest = new HttpPost(getGeeEndpointURL());
+
+        uriRequest.setEntity(requestEntity);
+
+        HttpResponse response = client.execute(uriRequest);
+
+        EntityUtils.consume(response.getEntity());
+
+    }
+
+    private String createJSONFromMessage(org.n52.kubas.messenger.Message message) throws IOException{
 
         StringWriter stringWriter = new StringWriter();
 
@@ -269,11 +269,11 @@ public class Email2GEE {
             g.writeStringField(this.phone, message.getPhone());
         }
 
-//        String userId = message.getUserId();
-//
-//        if(userId != null && !userId.isEmpty()){
-//            g.writeStringField(this.userId, message.getUserId());
-//        }
+        //        String userId = message.getUserId();
+        //
+        //        if(userId != null && !userId.isEmpty()){
+        //            g.writeStringField(this.userId, message.getUserId());
+        //        }
 
         g.writeStringField(details, message.getDetails());
 
@@ -281,45 +281,45 @@ public class Email2GEE {
         g.close();
 
         return stringWriter.toString();
-	}
+    }
 
-	public void setUsername(String username) {
-		this.username = username;
-	}
+    public void setUsername(String username) {
+        this.username = username;
+    }
 
-	public void setPassword(String password) {
-		this.password = password;
-	}
+    public void setPassword(String password) {
+        this.password = password;
+    }
 
-	public void setHost(String host) {
-		this.host = host;
-	}
+    public void setHost(String host) {
+        this.host = host;
+    }
 
-	public void setInbox(String inbox) {
-		this.inbox = inbox;
-	}
+    public void setInbox(String inbox) {
+        this.inbox = inbox;
+    }
 
-	private String getInbox() {
-		return inbox;
-	}
+    private String getInbox() {
+        return inbox;
+    }
 
-	private String getPassword() {
-		return password;
-	}
+    private String getPassword() {
+        return password;
+    }
 
-	private String getUsername() {
-		return username;
-	}
+    private String getUsername() {
+        return username;
+    }
 
-	private String getHost() {
-		return host;
-	}
+    private String getHost() {
+        return host;
+    }
 
-	public String getGeeEndpointURL() {
-		return geeEndpointURL;
-	}
+    public String getGeeEndpointURL() {
+        return geeEndpointURL;
+    }
 
-	public void setGeeEndpointURL(String geeEndpointURL) {
-		this.geeEndpointURL = geeEndpointURL;
-	}
+    public void setGeeEndpointURL(String geeEndpointURL) {
+        this.geeEndpointURL = geeEndpointURL;
+    }
 }

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
-<!--    <property name="logFile" value="${catalina.base:-.}/logs/kubas-engine" />
+<property name="logFile" value="${catalina.base:-.}/logs/kubas-messenger" />
     <appender name="file-appender"
                   class="ch.qos.logback.core.rolling.RollingFileAppender">
         See http://logback.qos.ch/manual/appenders.html#RollingFileAppender
@@ -18,7 +18,7 @@
             <charset>UTF-8</charset>
             <pattern>%d{ISO8601} [%t] %-5p %c{32}: %m%n</pattern>
         </encoder>
-    </appender>-->
+    </appender>
     <appender name="console-appender" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
             <charset>UTF-8</charset>
@@ -26,19 +26,15 @@
         </encoder>
     </appender>
     <logger name="org.n52" level="DEBUG" additivity="false">
-        <!--<appender-ref ref="file-appender" />-->
-        <appender-ref ref="console-appender" />
+        <appender-ref ref="file-appender" />
+<!--        <appender-ref ref="console-appender" />-->
     </logger>
     <logger name="org.springframework" level="INFO" additivity="false">
-        <!--<appender-ref ref="file-appender" />-->
-        <appender-ref ref="console-appender" />
-    </logger>
-    <logger name="org.camunda" level="WARN" additivity="false">
-        <!--<appender-ref ref="file-appender" />-->
-        <appender-ref ref="console-appender" />
+        <appender-ref ref="file-appender" />
+<!--        <appender-ref ref="console-appender" />-->
     </logger>
     <root level="WARN">
-        <!--<appender-ref ref="file-appender" />-->
-        <appender-ref ref="console-appender" />
+        <appender-ref ref="file-appender" />
+<!--        <appender-ref ref="console-appender" />-->
     </root>
 </configuration>

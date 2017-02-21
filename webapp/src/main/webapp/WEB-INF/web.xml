@@ -24,7 +24,7 @@
         </init-param>
 		<init-param>
 			<param-name>secOptspath</param-name>
-			<param-value>/home/matthes/kubas-secOpts.properties</param-value>
+			<param-value>/etc/kubas/kubas-secOpts.properties</param-value>
 		</init-param>
         <load-on-startup>1</load-on-startup>
     </servlet>

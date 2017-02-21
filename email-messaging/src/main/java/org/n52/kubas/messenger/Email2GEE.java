@@ -60,6 +60,7 @@ public class Email2GEE {
     private String host;
     private String inbox;
     private String geeEndpointURL;
+    private boolean receivingDisabled;
 
     private HttpClient client;
 
@@ -83,9 +84,15 @@ public class Email2GEE {
         setHost(mailAccountProperties.getProperty(hostKey));
         setInbox(mailAccountProperties.getProperty(inboxKey));
         setGeeEndpointURL(mailAccountProperties.getProperty(geeEndpointURLKey));
+        setReceivingDisabled(Boolean.parseBoolean(mailAccountProperties.getProperty("receivingDisabled")));
     }
 
     public void startListening() throws MessagingException, Exception {
+        if (receivingDisabled) {
+            log.warn("Receiption of imap folder disable via config. No mails will be received.");
+            return;
+        }
+
         client = createClient();
 
         MailSSLSocketFactory sf = new MailSSLSocketFactory();
@@ -284,4 +291,14 @@ public class Email2GEE {
     public void setGeeEndpointURL(String geeEndpointURL) {
         this.geeEndpointURL = geeEndpointURL;
     }
+
+    public boolean isReceivingDisabled() {
+        return receivingDisabled;
+    }
+
+    public void setReceivingDisabled(boolean receivingDisabled) {
+        this.receivingDisabled = receivingDisabled;
+    }
+
+
 }

@@ -37,6 +37,7 @@ import org.slf4j.LoggerFactory;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.sun.mail.imap.IMAPFolder;
+import com.sun.mail.util.MailSSLSocketFactory;
 
 public class Email2GEE {
 
@@ -82,11 +83,18 @@ public class Email2GEE {
         setHost(mailAccountProperties.getProperty(hostKey));
         setInbox(mailAccountProperties.getProperty(inboxKey));
         setGeeEndpointURL(mailAccountProperties.getProperty(geeEndpointURLKey));
+    }
 
+    public void startListening() throws MessagingException, Exception {
         client = createClient();
 
-        Properties props = System.getProperties();
+        MailSSLSocketFactory sf = new MailSSLSocketFactory();
+        sf.setTrustAllHosts(true);
+
+        Properties props = new Properties();
         props.setProperty("mail.store.protocol", "imaps");
+        props.setProperty("mail.imaps.ssl.trust", "*");
+        props.put("mail.imaps.ssl.socketFactory", sf);
         Session session = Session.getDefaultInstance(props, null);
 
         Store store = session.getStore("imaps");
@@ -113,9 +121,12 @@ public class Email2GEE {
                         String fromEmailAddress = extractSenderEmailAdress(message.getFrom());
                         message2.setEmail(fromEmailAddress);
                         message2.setDetails(subject);
+                        message.getContent();
                         log.info("Got new message with subject: " + subject);
                     } catch (MessagingException e1) {
                         log.error("Could not get message subject.", e1);
+                    } catch (IOException ex) {
+                        log.error("Error reading content", ex);
                     }
                     //forward to GEE
                     try {
@@ -123,25 +134,23 @@ public class Email2GEE {
                     } catch (Exception e1) {
                         log.error("Could not forward message to GEE.", e1);
                     }
-
-                    try {
-                        message.setFlag(Flag.SEEN, true);
-                    } catch (MessagingException e1) {
-                        log.error("Could not set message to seen.", e1);
-                    }
                 }
 
             }
         });
 
+        log.info("Connected to imap folder!");
+
         while (true) {
             try {
                 // folder.idle();
                 int newMessageCount = folder.getNewMessageCount();
-                log.info("New messages: " + newMessageCount);
+                if (newMessageCount > 0) {
+                    log.info("New messages: " + newMessageCount);
+                }
                 Thread.sleep(30000);
-            } catch (Exception e) {
-                e.printStackTrace();
+            } catch (MessagingException | InterruptedException e) {
+                log.warn(e.getMessage(), e);
                 break;
             }
         }

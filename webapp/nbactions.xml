@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<actions>
+        <action>
+            <actionName>CUSTOM-JETTY run</actionName>
+            <displayName>JETTY run</displayName>
+            <goals>
+                <goal>package</goal>
+            </goals>
+            <activatedProfiles>
+                <activatedProfile>jetty-run</activatedProfile>
+            </activatedProfiles>
+        </action>
+    </actions>

@@ -1,0 +1,18 @@
+<b:beans xmlns="http://www.springframework.org/schema/security"
+         xmlns:b="http://www.springframework.org/schema/beans"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://www.springframework.org/schema/beans
+            http://www.springframework.org/schema/beans/spring-beans.xsd
+            http://www.springframework.org/schema/security
+            http://www.springframework.org/schema/security/spring-security.xsd">
+
+    <http auto-config="true" pattern="/smsgateway" realm="KUBAS Messenger Gateway Secured API">
+        <http-basic />
+        <csrf disabled="true"/>
+        <intercept-url pattern="/smsgateway" access="hasIpAddress('172.16.152.252') or hasIpAddress('127.0.0.1') or hasIpAddress('::1')" />
+    </http>
+
+    <authentication-manager alias="authenticationManager">
+    </authentication-manager>
+
+</b:beans>

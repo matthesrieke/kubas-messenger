@@ -20,11 +20,11 @@
         <servlet-class>org.springframework.web.servlet.DispatcherServlet</servlet-class>
         <init-param>
             <param-name>contextConfigLocation</param-name>
-            <param-value>classpath*:dispatcher-servlet.xml</param-value>
+            <param-value>classpath*:dispatcher-servlet.xml, classpath*:spring-security.xml</param-value>
         </init-param>
 		<init-param>
 			<param-name>secOptspath</param-name>
-			<param-value>C:\Users\bpr\Documents\52North\kubas-secOpts.properties</param-value>
+			<param-value>/home/matthes/kubas-secOpts.properties</param-value>
 		</init-param>
         <load-on-startup>1</load-on-startup>
     </servlet>
@@ -33,4 +33,19 @@
         <servlet-name>dispatcher</servlet-name>
         <url-pattern>/</url-pattern>
     </servlet-mapping>
+
+    <!-- listener for making the request available in the MVC controllers -->
+    <listener>
+        <listener-class>org.springframework.web.context.request.RequestContextListener</listener-class>
+    </listener>
+
+    <!-- spring security filter -->
+    <filter>
+        <filter-name>springSecurityFilterChain</filter-name>
+        <filter-class>org.springframework.web.filter.DelegatingFilterProxy</filter-class>
+    </filter>
+    <filter-mapping>
+        <filter-name>springSecurityFilterChain</filter-name>
+        <url-pattern>/*</url-pattern>
+    </filter-mapping>
 </web-app>
